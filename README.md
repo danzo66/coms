@@ -34,5 +34,6 @@ The fourth and final program to run is spectraplotting.py.
 (3) https://arxiv.org/abs/2109.06319
 
 
-You can find my recent personal project here: 
+
+You can find my recent personal project on combining and sorting Spotify Playlists here: 
 https://github.com/danzo66/spotify-wrapped
