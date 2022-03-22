@@ -32,3 +32,7 @@ The fourth and final program to run is spectraplotting.py.
 (1) https://arxiv.org/abs/2109.06233
 (2) https://arxiv.org/abs/1403.0390
 (3) https://arxiv.org/abs/2109.06319
+
+
+You can find my recent personal project here: 
+https://github.com/danzo66/spotify-wrapped
