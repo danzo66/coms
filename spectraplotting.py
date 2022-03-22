@@ -12,10 +12,15 @@ transitions_ilee = {'AS_209':      [[220.7302611, 4.1,0]],
       'MWC_480':     [[220.7302611, 26.1, 1.3]],
          }
 
+#currently x2.0_loglin is working very well
 args = ['CH3CN', 'HD_163296', 'x2.0_loglin']
 
 
 def loadfiles(molecule, disc, version):
+    '''
+    reads the .out files and makes them into arrays
+    '''
+    
 
     filename = str(molecule) + '_test_' + str(version) + '_x10ab'
     #filename = str(molecule) + '_test_' + str(version)
@@ -97,6 +102,10 @@ data = loadfiles(*args)
 
 
 def plot(molecule, disc, version, profiles, intensities, continuum, transitions):
+    '''
+    plots the spectrum 
+    takes *args, *data, transitions_ilee
+    '''
     
     '''PLOTTING'''
     #getting data, into correct form
@@ -116,7 +125,7 @@ def plot(molecule, disc, version, profiles, intensities, continuum, transitions)
     ann = ''
     
     #goes thru the intensities
-    # if the frequency is equal to the K=2 transition in Ilee et al. it does a thing
+    # if the frequency is equal to the K=2 transition in Ilee et al. it prints both values
     # determines transition number and flux i found
     for i, trans in enumerate(intensities):
 
@@ -145,36 +154,8 @@ def plot(molecule, disc, version, profiles, intensities, continuum, transitions)
     
     plt.text(0.94*fmin, -1.05*pmax, s=ann, fontsize='x-large', fontfamily='CALIBRI')
     
-    #plt.annotate(ann, xy = (fmin, (-0.1*pmax)))
-
+    print(ann)
     
-    
-    '''DISC INTEGRATED FLUX COMPARISON'''
-    toprint = [molecule, disc, version]
-    for i, p in enumerate(toprint):
-        p = p.split('_')
-        toprint[i]= p
-    print(str(toprint[0][0]) + ' in ' + str(toprint[1][0]) + ' ' + str(toprint[1][1])) 
-    print(str(toprint[2][0]) + ' ' + str(toprint[2][1]) + ' resolution')
-    
-    #goes thru the intensities
-    # if the frequency is equal to the K=2 transition in Ilee et al. it does a thing
-    # determines transition number and flux i found
-    for i, trans in enumerate(intensities):
-
-        trans_num = trans[0]
-        trans_freq = trans[1]
-        flux = trans[2]
-        
-        for j, t_ilee in enumerate(transitions[disc]):
-            if round(trans_freq, 3) == round(t_ilee[0], 3):
-                
-                print('\n' + str(int(trans_num)) + '   ' + '{0:1.3f}'.format(trans_freq) + ' GHz')
-                if flux < 0.1:
-                    print('Integrated flux = ' + '{0:1.3e}'.format(flux) + ' mJykm/s')
-                else:
-                    print('Integrated flux = ' + '{0:1.3f}'.format(flux) + ' mJykm/s')
-                print('Integrated flux, Ilee et al. 2021 = ' + str(t_ilee[1]) + ' +- ' + str(t_ilee[2]) + ' mJykm/s')
 
     
 plot(*args, *data, transitions_ilee)
