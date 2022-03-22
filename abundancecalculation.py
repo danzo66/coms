@@ -32,6 +32,11 @@ args = ["CH3CN", "HD_163296", 'x2.0x1.5_loglog']
 
 
 def loaddata(molecule, disc, version, ifprint=True):
+    '''
+    loads the interpolated data
+    takes in *args, after specifying the parameters within this variable
+    ifprint is just whether or not you want to print the disc name etc.
+    '''
     
     if ifprint == True:
         toprint = [molecule, disc, version]
@@ -153,12 +158,121 @@ MOLECULES = {"CO" :     [1300,  28.01,  0.9,    data[-3],  1.3e-5],
              "Glycine": [300,   75.07,  0.9,    1e-16,     1e-10]
              }
 
- 
+
+
+
+def plot_data(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, molecule, disc, version):
+    """
+    plots the parameters in cylindrical coords
+    takes in *data, *args
+    this doesn't work for the 1d plots because they are all zero at the minute
+    """
+    
+    #sets up figure and colour map
+    fig = plt.figure(figsize=(20,15))
+    fig.tight_layout(pad=10.0)
+    cmap = 'Spectral_r'
+    
+
+    label = [r'$T_{d_1}$(K)', r'$T_{d_2}$(K)', r'$T_{gas}$(K)',
+             r'log($\rho_{d_1}(g/cm^3)$)', r'log($\rho_{d_2}(g/cm^3)$)', r'log($n_{H_2}(cm^{-3}$))', r'log($X_{CO}$)', 
+             r'$\Sigma_{gas}$', r'$\Sigma_{d_1}$', r'$\Sigma_{d_2}$']
+        
+    
+    #plots each subfigure
+    for i, parameter in enumerate([td1, td2, t_gas, rho_d1, rho_d2, n_H2, X_CO, sigma_g, sigma_dust1, sigma_dust2]):   
+        
+        zmax = np.max(ZZ)
+        zmax = 100
+        
+        #temperature plots
+        if i < 3:
+            ax = fig.add_subplot(3,4,(1+i))
+            
+            #sets contour levels to an appropriate amount
+            if i == 0:
+                clevels = np.linspace(1, 200, 20)
+                llevels = [20, 50, 100]
+                plt.ylabel("z (AU)")
+            elif i == 1:
+                clevels = np.linspace(1, 200, 20)
+                llevels = [10, 20, 50,]
+            elif i == 2:
+                clevels = np.linspace(1, 200, 20)   
+                llevels = [10, 20, 30,]           
+            
+            plt.contourf(RR, ZZ, parameter, levels=clevels, cmap=cmap)
+            cbar = plt.colorbar()
+        
+            plt.contour(RR,ZZ,parameter,levels=llevels,colors='w',linewidths=1)
+            
+            ax.set_ylim([0,zmax])
+            ax.set_aspect('equal')
+            
+            plt.title(label[i])
+            plt.xlabel("r (AU)")
+
+            
+        #logarithmic density plots
+        elif i < 7:
+            parameter = np.log10(parameter)
+
+            ax = fig.add_subplot(3,4,(2+i))
+            
+            #sets contour levels for each subfigure
+            dmax = math.ceil(np.nanmax(parameter))
+            dmin = math.floor(np.nanmin(parameter))
+            
+            if i == 3:
+                clevels = np.linspace(-30, dmax, 20)
+                llevels = np.linspace(dmin, dmax, 4, endpoint=False)
+                plt.ylabel("z (AU)")
+            elif i == 4:
+                clevels = np.linspace(-30, dmax,20)
+                llevels = np.linspace(dmin, dmax, 4, endpoint=False)
+            elif i == 5:
+                clevels = np.linspace(-3, dmax, 20)
+                llevels = np.linspace(dmin, dmax, 4, endpoint=False)
+            elif i == 6:
+                clevels = np.linspace(-30, dmax, 20)
+                llevels = np.linspace(dmin, dmax, 4, endpoint=False)
+                
+            plt.contourf(RR,ZZ,parameter,levels=clevels, cmap=cmap)
+            cbar = plt.colorbar()
+        
+            plt.contour(RR,ZZ,parameter,levels=llevels,colors='w', linewidths=1)
+            
+            ax.set_ylim([0,zmax])
+            ax.set_aspect('equal')
+            
+            plt.title(label[i])
+            plt.xlabel("r (AU)")
+
+
+        '''
+        #surface density    
+        elif i > 6:
+            ax = fig.add_subplot(3,4,(2+i))
+            plt.plot(R, parameter)
+            ax.set_yscale("log")
+            
+            plt.title(label[i])
+            plt.xlabel("r (AU)")
+            if i == 7:
+                plt.ylabel(r"$(g/cm^2)$")
+        '''
 
 
 def photodissociation(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, molecule, disc, version, ifplot=False):
-    """make sure to change the luminosity to the correct disc"""
+    """
+    determines the visual extinction of the disc
+    by considering F*, the flux from the star if there were no dust
+    and the UV flux at a given point
     
+    Takes in *data, *args
+    ifplot is just whether you want to plot the different steps to get to the visual extinction
+    outputs the visual extinction
+    """    
     
     """determines the Flux without stuff in the way"""
     
@@ -239,7 +353,11 @@ def photodissociation(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, s
 
 
 def freezeoutrate(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, molecule, disc, version):
-    """FREEZE OUT RATE"""
+    """
+    determines the freeze out rate of the molecule as in van't Hoff 2016
+    takes in *data, *args
+    outputs freezeout rate
+    """
     
     """MOLECULE PARAMETERS"""
     molecule = MOLECULES[molecule]
@@ -295,6 +413,18 @@ def freezeoutrate(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma
 def mol_abundance(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, 
                  molecule, disc, version, x_gas,
                  ifplot = False):    
+    '''
+    determines the phase ratio of the molecule throughout the disc
+    by equating the freeze out and desorption rates
+    
+    takes in *data, *args, x_gas
+    if the molecule is CO, this will be the observational data array X_CO
+    otherwise, it is a constant initial abundance from Walsh et al. 2014
+    x_ice is constant initial abundance for all molecules
+    ifplot is just whether you want to plot the phase ratio and snowline
+    
+    outputs x_ice and phaseratio
+    '''
     
     """MOLECULAR PARAMETERS"""
     mol_para = MOLECULES[molecule]
@@ -309,7 +439,7 @@ def mol_abundance(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma
     nu0 = math.sqrt((2 * CONSTS['N_SITES'] * E_b_ergs) / (math.pi**2 * m_mol))
     
     
-    """FREEZE OUT RATE"""
+    """CALLS FREEZE OUT RATE FUNCTION"""
     k_f = freezeoutrate(*data, *args)
 
     
@@ -327,8 +457,9 @@ def mol_abundance(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma
     
     """PHASE RATIO"""
     phaseratio = k_f / k_d
-    expkd = np.log(k_d)
-    global prlog
+    
+    #for plotting
+    expkd = np.log(k_d)    
     prlog = np.log(phaseratio)
 
 
@@ -362,7 +493,14 @@ def mol_abundance(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma
 def co_snowsurface(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, 
                  molecule, disc, version,
                  ifplot = False):    
-    """Finds the CO snow surface for the disc"""
+    """
+    same as mol_abundances() but for CO
+    this is needed for the lower bound of the regions, regardless of molecule
+    
+    this is a separate function because i was doing it differently before
+    and actually calculating the ice abundance rather than just using a number
+    that did not work and this is the relic of it...
+    """
     
     """CO PARAMETERS"""
     mol_para = MOLECULES["CO"]
@@ -418,7 +556,10 @@ def co_snowsurface(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigm
 
 
 def get_contour_verts(cn):
-    """https://stackoverflow.com/questions/18304722/python-find-contour-lines-from-matplotlib-pyplot-contour"""
+    """
+    gets the coordinates for a contour line cn
+    https://stackoverflow.com/questions/18304722/python-find-contour-lines-from-matplotlib-pyplot-contour
+    """
     contours = []
     # for each contour line
     for cc in cn.collections:
@@ -433,51 +574,25 @@ def get_contour_verts(cn):
         contours.append(paths)
 
     return contours
-      
-
-
-      
-def snowline_old(RR, ZZ, phaseratio, molecule):
-    '''
-    FINDS SNOW LINE AND DEALS WITH EXTRA RATIOS ELSEWHERE
-    '''
-    
-    '''Z OVER R FOR THE DISC'''
-    ZoverR = np.zeros(np.shape(RR))
-    
-    for i, row in enumerate(RR):
-        for j, t in enumerate(row):
-            if np.isnan(t) == True:
-                ZoverR[i,j] = float('nan')
-            else:
-                ZoverR_ij = ZZ[i,j] / RR[i,j]
-                ZoverR[i,j] = ZoverR_ij
-            
-            #Stops there from being 2 snow surfaces
-            #and that extra little cold bit at the front of the disc
-            # REMEMBER TO TWEAK THIS PER DISC
-            if molecule == "CO":
-                if ZoverR_ij > 0.15:
-                    phaseratio[i,j] = float('nan')
-                elif RR[i,j] < 50:
-                    phaseratio[i,j] = float('nan')
-            
-                
-    for i, x in enumerate(phaseratio[0]):
-        if np.isnan(x) == True:
-            r_snow = 0
-            continue
-        elif round(x,1) >= 1:
-            r_snow = RR[0][i]
-            break
-    
-    return r_snow, phaseratio
 
 
 
 
 def desorptiontemp(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, molecule, disc, version):
-    """DESORPTION TEMPERATURE"""
+    """
+    finds the desorption temperature of the molecule
+    this function isn't actually used in the model anymore, 
+    but it gets printed out and plotted
+    
+    this function uses a linearly interpolated set of data, 
+    because otherwise the temp comes out too large
+    as most of the grid points in the inner disc
+    so they raise the average
+    
+    takes in *data, *args
+    
+    detailed in van't Hoff 2016
+    """
     
     #loading linearly spaced data so that we can average it
     datalinlin = loaddata(molecule, disc, 'x3.0_linlin', ifprint=False)
@@ -502,8 +617,6 @@ def desorptiontemp(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigm
         n_ice = n_H2 * MOLECULES[molecule][4]        
         x_ice = n_ice/n_H2
         
-        #n_gas = n_H2 * 3.2e-6
-        #x_gas = n_gas / n_H2
     else: 
         n_gas = n_H2 * MOLECULES[molecule][3]
         n_ice = n_H2 * MOLECULES[molecule][4]
@@ -515,9 +628,7 @@ def desorptiontemp(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigm
     """MOLECULE RATES"""
     k_f_mol = freezeoutrate(*datalinlin, *args)
     
-    global T_dess
     #list of values for desorption temp
-    T_dess = np.copy(t_gas)
     T_des_sum = []
     
     #gotta do this by element cos of negatives and zeroes
@@ -538,7 +649,6 @@ def desorptiontemp(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigm
             #finds desorption temp for point, adds to list
             else:
                 T_des_ij = -E_b / np.log(logarithm)
-                T_dess[i,j] = T_des_ij
                 T_des_sum.append(T_des_ij)
                
     T_des = sum(T_des_sum) / len(T_des_sum)
@@ -555,6 +665,8 @@ def snowline(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust
     finding which of the contours is the longest (to get rid of any extra ones)
     it finds the lowest r value and sets that as the snowline
     then creates a line for the x and y coords so it can be plotted
+    
+    takes in *data, *args, phaseratio
     '''
     
     fig = plt.figure()
@@ -585,13 +697,21 @@ def snowline(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust
 
 
 def abundances(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, molecule, disc, version, plotbin=True, plotfrac=True, save=False):
-    """Actually does the thing of placing the molecules
+    """
+    Actually does the thing of placing the molecules in the disc
+    
+    takes in *data, *args, 
+    
     PARAMETERS calls all the functions
     THRESHOLDS sets the threshold values
     Then the threshold values are applied in a for loop per grid point
-    And the results are then plotted
+    And the results are then plotted plotbin = True
+    the fractional abundances are then set for the baseline, layer and reservoir
+    these can also be plotted plotfrac = True
     
-    can also save to see for interpolation"""        
+    can also save A_v = 3 and CO snow surface contours if save = True
+    which are used in interpolationfunction.py to see where the gridpoints are in relation to the COMs
+    """        
 
     
     """PARAMETERS"""
@@ -599,11 +719,9 @@ def abundances(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_du
     #VISUAL EXTINCTION
     A_v = photodissociation(*data, *args, ifplot=False) 
     
-    
     #CO SNOW SURFACE
     snowsurface_co = co_snowsurface(*data, *args)
 
-    
 
     #MOLECULE SNOW SURFACE
     #sets gas abundance
@@ -611,7 +729,6 @@ def abundances(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_du
         x_gas = X_CO
     else:
         x_gas = MOLECULES[molecule][3] 
-
 
     x_ice = MOLECULES[molecule][4] 
     mol_ab_func = mol_abundance(*data, *args, x_gas, ifplot=True)
@@ -873,8 +990,12 @@ def abundances(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_du
     
 
 
-def writetofile(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, molecule, disc, version, parameters="data", plotbin = True, plotfrac = False):
-    """ """   
+def writetofile(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_dust2, sigma_g, n_H2, X_CO, flux_Lyalpha, flux_UV_cont, flux_UV_tot, molecule, disc, version, plotbin = True, plotfrac = False):
+    """
+    writes the data out to the format needed by line survey code
+    takes in *data, *args
+    also kwargs for if you want to plot when abundances() is called 
+    """   
     
     """GETTING TO CORRECT FORMAT"""
     abundance = abundances(*data, *args, plotbin = plotbin, plotfrac = plotfrac, save=True)
@@ -1023,12 +1144,12 @@ def writetofile(RR, ZZ, R, td1, td2, t_gas, rho_d1, rho_d2, sigma_dust1, sigma_d
     f.write(txt)
 
     
-    return abundancetab, structuretab, Rs
+    return abundancetab, structuretab,
 
 
 
 
-#plot_cyl(*data, *args)
+#plot_data(*data, *args)
 
 ab = abundances(*data, *args, plotbin = True, plotfrac = False, save=True)
 
