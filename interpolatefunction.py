@@ -25,66 +25,88 @@ from scipy.interpolate import griddata
 from matplotlib import gridspec
 
 
-lines = True
-
 DISCS = ['AS_209',
          'GM_Aur',
          'HD_163296',
          'IM_Lup',
          'MWC_480']
 
-DISC = DISCS[2]
-
-FILENAME = "C:/Users/danip/OneDrive/Documents/Uni/Year 4/MPhys Project/MAPS discs/MAPS_working_dir/disc_" + str(DISC) + "/" + str(DISC) + "_disk_structure.npz"
-
-#loads original spherical coordinate data
-file = np.load(FILENAME, allow_pickle=True)
-
-#dictionary of each array
-data = [file['r'],                  #0      mesh grid of radial coords
-        file['theta'],              #1      mesh grid of z coords
-        
-        file['sigma_dust'],         #2      dust 1 surface density
-        file['sigma_g'],            #3      gas surface density
-        
-        file['td1'],                #4      temperature of dust size 1
-        file['td2'],                #5      temperature of dust size 2
-        file['tgas'],               #6      gas temperature
-        
-        file['rho_d1'],             #7      density of dust size 1
-        file['rho_d2'],             #8      density of dust size 2
-        
-        file['n_H2'],               #9      number density of H_2
-        file['X_CO'],               #10     CO abundance
-        
-        file['flux_Lyalpha'],       #11     Lyman alpha flux
-        file['flux_UV_cont'],       #12     UV flux
-        ]
+disc = DISCS[2]
 
 
-#list of 2d arrays for names for saving
-arr2d = [[data[6], "tgas_in",],[data[4], "td1_in"],[data[5],"td2_in"],
-         [data[9],"n_H2_in"],[data[10], "X_CO_in"],
-         [data[7], "rho_d1_in"], [data[8], "rho_d2_in"], 
-         [data[11], "flux_Lyalpha_in"], [data[12], "flux_UV_cont_in"]]
-
-#list of 1d arrays
-arr1d = [[data[2],"sigma_dust_in"], [data[1], "sigma_g_in"]]
-
-if lines == True:
-    #snowsurface and extinction so we can see what it is like where the COMs actually are
-    filelines = np.load("C:/Users/danip/OneDrive/Documents/Uni/Year 4/MPhys Project/MAPS discs/MAPS_working_dir/disc_" + str(DISC) + "/interpolateddata/lines.npz", allow_pickle=True)
-    lines = [filelines["ss"],
-             filelines["av"],]
+def loaddata(disc, lines=True):
+    '''
+    loads spherical data
+    if lines = True
+    then it also loads the snow surface and visual extinction
+    so you can see where in the plot is important
+    '''
     
+    FILENAME = "C:/Users/danip/OneDrive/Documents/Uni/Year 4/MPhys Project/MAPS discs/MAPS_working_dir/disc_" + str(disc) + "/" + str(disc) + "_disk_structure.npz"
+    
+    #loads original spherical coordinate data
+    file = np.load(FILENAME, allow_pickle=True)
+    
+    #dictionary of each array
+    data = [file['r'],                  #0      mesh grid of radial coords
+            file['theta'],              #1      mesh grid of z coords
+            
+            file['sigma_dust'],         #2      dust 1 surface density
+            file['sigma_g'],            #3      gas surface density
+            
+            file['td1'],                #4      temperature of dust size 1
+            file['td2'],                #5      temperature of dust size 2
+            file['tgas'],               #6      gas temperature
+            
+            file['rho_d1'],             #7      density of dust size 1
+            file['rho_d2'],             #8      density of dust size 2
+            
+            file['n_H2'],               #9      number density of H_2
+            file['X_CO'],               #10     CO abundance
+            
+            file['flux_Lyalpha'],       #11     Lyman alpha flux
+            file['flux_UV_cont'],       #12     UV flux
+            ]
+    
+    
+    #list of 2d arrays for names for saving
+    arr2d = [[data[6], "tgas_in",],[data[4], "td1_in"],[data[5],"td2_in"],
+             [data[9],"n_H2_in"],[data[10], "X_CO_in"],
+             [data[7], "rho_d1_in"], [data[8], "rho_d2_in"], 
+             [data[11], "flux_Lyalpha_in"], [data[12], "flux_UV_cont_in"]]
+    
+    #list of 1d arrays
+    arr1d = [[data[2],"sigma_dust_in"], [data[1], "sigma_g_in"]]
+    
+    if lines == True:
+        #snowsurface and extinction so we can see what it is like where the COMs actually are
+        filelines = np.load("C:/Users/danip/OneDrive/Documents/Uni/Year 4/MPhys Project/MAPS discs/MAPS_working_dir/disc_" + str(disc) + "/interpolateddata/lines.npz", allow_pickle=True)
+        lines = [filelines["ss"],
+                 filelines["av"],]
+        
+        return data, arr2d, arr1d, lines
+    
+    else:
+        return data, arr2d, arr1d
 
 
+d = loaddata(disc, lines=True)
+data = d[0]
+arr1d = d[1]
+arr2d = d[2]
 
 
-def interpolate2d(parameter, r_sph, theta_sph, n_R, n_Z, logorlin, baser, basez, splitfactor, rmaxint):
-    """interpolates the parameter to n_R by n_Z many points
+def interpolate2d(parameter, r_sph, theta_sph, n_R, n_Z, logorlin, baser, basez, rmaxint):
+    """
+    interpolates the parameter to n_R by n_Z many points
+    
     loglin is either 'loglog' or 'linlin' or 'loglin'
-    and defines whether interpolation is linear or logarithmic (x first, y second)
+    and defines whether interpolation is linear or logarithmic (R first, Z second)
+    
+    baser basez are the logarithmic bases
+    
+    rmaxint takes either 'trunc' (truncated to 200AU)
+    or 'full' (interpolated over the whole disc)
     """
         
     #creates meshgrid of original spherical coords
@@ -173,85 +195,6 @@ def interpolate2d(parameter, r_sph, theta_sph, n_R, n_Z, logorlin, baser, basez,
         
         para_in_l = griddata(RZV[:,0:2], RZV[:,2], (RR_in, ZZ_in), method='linear')
         
-    elif logorlin == 'mix':
-        r_max_log = 50
-        z_max_log = 20
-        
-        nr_log = n_R * (r_max_log/600)
-        nz_log = n_Z * (z_max_log/600)
-
-        nr_lin = n_R * (1 - (r_max_log/600))
-        nz_lin = n_Z * (1 - (z_max_log/600))
-        
-        r_logstop = math.log(r_max_log, baser)
-        z_logstop = math.log(z_max_log, basez)
-        
-        r_in_log = np.logspace(-5, r_logstop, int(n_R/1.5), base=baser, endpoint = True)
-        z_in_log = np.logspace(-5, z_logstop, int(n_Z/1.5), base=basez, endpoint = True)
-        
-        r_in_lin_big = np.linspace(r_max_log, R_max, int(n_R/2))
-        z_in_lin_big = np.linspace(z_max_log, Z_max, int(n_Z/2))
-        
-        r_in_lin_small = np.linspace(0, r_max_log, int(n_R/1.5))
-        z_in_lin_small = np.linspace(0, z_max_log, int(n_Z/1.5))
-        
-        #INNER
-        RR_in_loglog, ZZ_in_loglog = np.meshgrid(r_in_log, z_in_log)    #small R small Z
-        para_in_loglog = griddata(RZV[:,0:2], RZV[:,2], (RR_in_loglog, ZZ_in_loglog), method='linear')
-        
-        RR_in_loglin, ZZ_in_loglin = np.meshgrid(r_in_lin_small, z_in_lin_big)    #big Z small R
-        para_in_loglin = griddata(RZV[:,0:2], RZV[:,2], (RR_in_loglin, ZZ_in_loglin), method='linear')
-        
-        #OUTER
-        RR_in_linlog, ZZ_in_linlog = np.meshgrid(r_in_lin_big, z_in_lin_small)    #big R small Z
-        para_in_linlog = griddata(RZV[:,0:2], RZV[:,2], (RR_in_linlog, ZZ_in_linlog), method='linear')
-
-        RR_in_linlin, ZZ_in_linlin = np.meshgrid(r_in_lin_big, z_in_lin_big)    #big R big Z
-        para_in_linlin = griddata(RZV[:,0:2], RZV[:,2], (RR_in_linlin, ZZ_in_linlin), method='linear')
-
-
-        RR_inner = np.concatenate([RR_in_loglog, RR_in_loglin], axis=0)
-        ZZ_inner = np.concatenate([ZZ_in_loglog, ZZ_in_loglin], axis=0)
-        para_inner = np.concatenate([para_in_loglog, para_in_loglin], axis=0)
-        
-        RR_outer = np.concatenate([RR_in_linlog, RR_in_linlin], axis=0)
-        ZZ_outer = np.concatenate([ZZ_in_linlog, ZZ_in_linlin], axis=0)
-        para_outer = np.concatenate([para_in_linlog, para_in_linlin], axis=0)
-        
-        RR_in = np.concatenate([RR_inner, RR_outer], axis=1)
-        ZZ_in = np.concatenate([ZZ_inner, ZZ_outer], axis=1)
-        para_in_l = np.concatenate([para_inner, para_outer], axis=1)
-        
-    elif logorlin == 'mixed':
-        #R VALUES
-        r_max_smallr = math.log(50, baser)
-        r_max_bigr = math.log(R_max, baser)
-        
-        n_smallr = int(n_R * splitfactor)
-        n_bigr = int(n_R * (1 - splitfactor))
-
-        r_in_smallr = np.logspace(-5, r_max_smallr, n_smallr, base=baser, endpoint = True)
-        r_in_bigr = np.logspace(r_max_smallr, r_max_bigr, n_bigr, base=baser, endpoint = True)
-        
-        #Z VALUES
-        zmaxlog = math.log(Z_max, basez)
-        z_in_smallr = np.logspace(-5, zmaxlog, n_Z, base=basez, endpoint = True)
-        z_in_bigr = np.linspace(0, Z_max, n_Z)
-
-        
-        #small R
-        RR_smallr, ZZ_smallr = np.meshgrid(r_in_smallr, z_in_smallr)    #small R small Z
-        para_smallr = griddata(RZV[:,0:2], RZV[:,2], (RR_smallr, ZZ_smallr), method='linear')
-
-        #BIG R
-        RR_bigr, ZZ_bigr = np.meshgrid(r_in_bigr, z_in_bigr)    #small R small Z
-        para_bigr = griddata(RZV[:,0:2], RZV[:,2], (RR_bigr, ZZ_bigr), method='linear')    
-        
-        RR_in = np.concatenate([RR_smallr, RR_bigr], axis=1)
-        ZZ_in = np.concatenate([ZZ_smallr, ZZ_bigr], axis=1)
-        para_in_l = np.concatenate([para_smallr, para_bigr], axis=1)
-        
-
     
         
     return RR_in, ZZ_in, para_in_l
@@ -260,7 +203,18 @@ def interpolate2d(parameter, r_sph, theta_sph, n_R, n_Z, logorlin, baser, basez,
 
 
 def plot2d(r_sph, theta_sph, parameter, lines, plots, baser, basez, z,):
-    """plots the data and interpolated grid points for a given parameter"""
+    """
+    plots the data and interpolated grid points for a given parameter
+    
+    lines is either the list of contour lines, if you want them
+    or lines = False if you do not
+    
+    plots is a list of all the things you want to plot size by side
+    
+    z is how close in you want to be because spyder won't let me zoom for some reason
+    (line 271 for dict keys)
+    """
+    
     parameter = np.transpose(parameter)
     
     #creates meshgrid of original spherical coords            
@@ -299,7 +253,7 @@ def plot2d(r_sph, theta_sph, parameter, lines, plots, baser, basez, z,):
             #gotta actually interpolate it first
             r_res = row[0][0]
             z_res = row[0][1]
-            inter = interpolate2d(parameter, r_sph, theta_sph, r_res, z_res, row[1], row[2], row[3], row[4], row[5])
+            inter = interpolate2d(parameter, r_sph, theta_sph, r_res, z_res, row[1], row[2], row[3], row[4])
         
             RR = inter[0]
             ZZ = inter[1]  
@@ -406,7 +360,10 @@ def plot2d(r_sph, theta_sph, parameter, lines, plots, baser, basez, z,):
 
 
 def interpolate1d(r_sph, theta_sph, parameter, n_R, loglin, baser,):
-    """interpolates 1d arrays for surface density"""
+    """
+    interpolates 1d arrays for surface density
+    theres a bug in here somewhere i think...
+    """
     
     R = r_sph*np.sin(theta_sph[0])
     
@@ -435,6 +392,10 @@ def interpolate1d(r_sph, theta_sph, parameter, n_R, loglin, baser,):
 
 
 def plot1d(r_sph, theta_sph, parameter, baser):
+    '''
+    plots the data in spherical, cylindrical and interpolated cylindrical coordinates
+    '''
+    
     inter = interpolate1d(r_sph, theta_sph, parameter, 152, "log", baser)
     R = inter[0]
     r_in = inter[1]
@@ -466,9 +427,25 @@ def plot1d(r_sph, theta_sph, parameter, baser):
 
 
 
-def save(r_sph, theta_sph, newsize, loglin, arr2d, arr1d, baser, basez, splitfactor, rmaxint):
-    """interpolates each array and saves them all to an npz file"""
+def save(r_sph, theta_sph, newsize, loglin, arr2d, arr1d, baser, basez, rmaxint):
+    """
+    interpolates each array and saves them all to an npz file
+    not working for 1d arrays but no 1d arrays are needed
     
+    takes in r_sph, theta_sph, arr2d, arr1d
+    
+    newsize is one of the keys from INTERPOLATIONSIZES
+    specifies the no. of R and Z grid points
+    
+    loglin is either 'loglog' or 'linlin' or 'loglin'
+    and defines whether interpolation is linear or logarithmic (R first, Z second)
+    
+    baser basez are the logarithmic bases
+    
+    rmaxint takes either 'trunc' (truncated to 200AU)
+    or 'full' (interpolated over the whole disc)
+    """
+        
     n_R = INTERPOLATIONSIZES[newsize][0]
     n_Z = INTERPOLATIONSIZES[newsize][1]
     print(newsize)
@@ -479,12 +456,12 @@ def save(r_sph, theta_sph, newsize, loglin, arr2d, arr1d, baser, basez, splitfac
         print(arr[1])
         #saves RR and ZZ the first time it runs
         if i == 0:
-            inter = interpolate2d(arr[0], r_sph, theta_sph, n_R, n_Z, loglin, baser, basez, splitfactor, rmaxint)
+            inter = interpolate2d(arr[0], r_sph, theta_sph, n_R, n_Z, loglin, baser, basez, rmaxint)
             RR_in = inter[0]
             ZZ_in = inter[1]
-            globals()[arr[1]] = inter[2]
+            globals()[arr[1]] = inter[2]    #sets the name 
         else:
-            globals()[arr[1]] = interpolate2d(arr[0], r_sph, theta_sph, n_R, n_Z, loglin, baser, basez, splitfactor, rmaxint)[2]
+            globals()[arr[1]] = interpolate2d(arr[0], r_sph, theta_sph, n_R, n_Z, loglin, baser, basez, rmaxint)[2]
 
         
     #interpolates and saves 1d arrays    
@@ -551,16 +528,17 @@ INTERPOLATIONSIZES = {"Original":   [304, 82],
 
 
 #test plots of various different interpolation choices
-#the first one is always the original for comparisons
-plots = [[INTERPOLATIONSIZES["Original"], "data", 2,2, 0.3, 'full'], 
-          [INTERPOLATIONSIZES["x2.0"], "loglin", 10,2, 0.7, 'full'],
-          [INTERPOLATIONSIZES["x2.0x1.5"], "loglog", 5,2, 0.7, 'full'],
+#the first one is always the original for comparisons, putting somethng else in there doesnt do anything
+#0: size    #1: log or lin      #2,3: baser, basez,     #4: where you want to interpolate to
+plots = [[INTERPOLATIONSIZES["Original"], "data", 2,2,'full'], 
+          [INTERPOLATIONSIZES["x2.0"], "loglin", 10,2,'full'],
+          [INTERPOLATIONSIZES["x2.0x1.5"], "loglog", 5,2,'full'],
           ]
 
 baser = 5
 basez = 2
 
 
-interpolated = plot2d(data[0], data[1], data[6], lines, plots, baser, basez, 'full')
+interpolated = plot2d(data[0], data[1], data[6], d[3], plots, baser, basez, 'full')
 
 #save(data[0], data[1], 'x2.0x1.5', "loglog", arr2d, arr1d, baser, basez, 0.3, 'full')     
