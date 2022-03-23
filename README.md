@@ -9,6 +9,7 @@ The first program to run is interpolationfunction.py.
        
 The second program to run is abundancecalculation.py.
   Set the variable args to be the molecule to calculate abundances for, the disc, and the interpolation parameters in the .npz file you want to load.
+  I need to change the file locations because at the minute they're paths for my computer!
   When the write_to_file() function is called it:
   1) Calculates the molecular abundances
   2) Prints the desorption temperature and the snow line
@@ -32,6 +33,7 @@ The fourth and final program to run is spectraplotting.py.
 (1) https://arxiv.org/abs/2109.06233
 (2) https://arxiv.org/abs/1403.0390
 (3) https://arxiv.org/abs/2109.06319
+Molecules with ALMA at Planet forming Scales: https://alma-maps.info/
 
 
 
